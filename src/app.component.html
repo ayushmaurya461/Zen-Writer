@@ -1,0 +1,205 @@
+<main class="flex h-screen w-screen overflow-hidden">
+  <!-- Left Panel: Editor -->
+  <div 
+    class="flex-shrink-0 flex flex-col p-4 md:p-6 bg-white dark:bg-gray-900 overflow-y-auto"
+    [style.width.%]="editorWidthPercent()">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-2xl font-bold text-black dark:text-white flex items-center">
+        <i class="fas fa-feather-alt mr-3 text-blue-500"></i>
+        Zen Writer
+      </h1>
+      <div class="flex items-center space-x-4">
+        @if (isLoading()) {
+          <div class="flex items-center text-sm text-blue-500 dark:text-blue-400">
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Analyzing...
+          </div>
+        }
+        <button (click)="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+            @if (theme() === 'dark') {
+                <i class="fas fa-sun text-lg text-yellow-400"></i>
+            } @else {
+                <i class="fas fa-moon text-lg text-indigo-500"></i>
+            }
+        </button>
+      </div>
+    </div>
+    
+    <!-- Editor Container -->
+    <div class="flex flex-col flex-grow">
+      <!-- Toolbar -->
+      <div class="flex items-center flex-wrap gap-x-3 gap-y-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-t-lg border-2 border-b-0 border-gray-200 dark:border-gray-700">
+        <select (change)="format('formatBlock', $any($event.target).value)" class="bg-gray-200 dark:bg-gray-700 text-black dark:text-white rounded px-2 py-1 focus:outline-none text-xs">
+          <option value="p" selected>Paragraph</option>
+          <option value="h1">Heading 1</option>
+          <option value="h2">Heading 2</option>
+          <option value="h3">Heading 3</option>
+          <option value="pre">Code</option>
+        </select>
+        
+        <select (change)="format('fontName', $any($event.target).value)" class="bg-gray-200 dark:bg-gray-700 text-black dark:text-white rounded px-2 py-1 focus:outline-none text-xs w-28">
+          @for (family of fontFamilies; track family) {
+            <option [value]="family">{{ family }}</option>
+          }
+        </select>
+
+        <select (change)="format('fontSize', $any($event.target).value)" class="bg-gray-200 dark:bg-gray-700 text-black dark:text-white rounded px-2 py-1 focus:outline-none text-xs">
+          <option value="1">Smallest</option>
+          <option value="2">Small</option>
+          <option value="3" selected>Normal</option>
+          <option value="4">Large</option>
+          <option value="5">X-Large</option>
+          <option value="6">XX-Large</option>
+        </select>
+        
+        <div class="h-5 w-px bg-gray-300 dark:bg-gray-600"></div>
+
+        <button (click)="format('undo')" title="Undo" class="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 w-8 h-8 flex items-center justify-center"><i class="fas fa-undo"></i></button>
+        <button (click)="format('redo')" title="Redo" class="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 w-8 h-8 flex items-center justify-center"><i class="fas fa-redo"></i></button>
+        
+        <div class="h-5 w-px bg-gray-300 dark:bg-gray-600"></div>
+
+        <button (click)="format('bold')" title="Bold" class="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 w-8 h-8 flex items-center justify-center"><i class="fas fa-bold"></i></button>
+        <button (click)="format('italic')" title="Italic" class="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 w-8 h-8 flex items-center justify-center"><i class="fas fa-italic"></i></button>
+        <button (click)="format('underline')" title="Underline" class="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 w-8 h-8 flex items-center justify-center"><i class="fas fa-underline"></i></button>
+
+        <div class="h-5 w-px bg-gray-300 dark:bg-gray-600"></div>
+        
+        <div class="relative flex items-center">
+            <button class="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 w-8 h-8 flex items-center justify-center" title="Text Color" (click)="colorInput.click()">
+                <i class="fas fa-palette"></i>
+            </button>
+            <input #colorInput type="color" class="w-0 h-0 absolute opacity-0" (input)="format('foreColor', $any($event.target).value)">
+        </div>
+
+      </div>
+
+      <!-- Editor -->
+      <div 
+        contenteditable="true"
+        class="w-full flex-grow bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-b-lg p-4 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base leading-relaxed resize-none"
+        style="min-height: 300px;"
+        [innerHTML]="sanitizedContent()"
+        (input)="onContentChange($event)">
+      </div>
+    </div>
+  </div>
+
+  <!-- Resizer Handle -->
+  <div 
+    class="w-2 cursor-col-resize bg-gray-200 dark:bg-gray-700 hover:bg-blue-500 active:bg-blue-600 transition-colors duration-200"
+    (mousedown)="startResize($event)">
+  </div>
+
+  <!-- Right Panel: AI Assistant -->
+  <aside class="flex-grow bg-gray-50 dark:bg-gray-800 flex flex-col p-4 md:p-6 overflow-y-auto">
+    <h2 class="text-xl font-bold text-black dark:text-white mb-6">Assistant</h2>
+
+    @if (error()) {
+      <div class="bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded-lg" role="alert">
+        <strong class="font-bold">Error:</strong>
+        <span class="block sm:inline">{{ error() }}</span>
+      </div>
+    }
+
+    @if (isLoading() && !analysis()) {
+      <div class="flex-grow flex items-center justify-center">
+         <div class="flex flex-col items-center text-gray-500 dark:text-gray-400">
+             <svg class="animate-spin h-8 w-8 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p>Analyzing your text...</p>
+         </div>
+      </div>
+    } @else if (analysis(); as result) {
+      <!-- Tone Meter -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-3">Tone Analysis</h3>
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+          <div class="flex justify-between items-center mb-2">
+            <span class="font-bold text-black dark:text-white capitalize">{{ result.tone.name }}</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ result.tone.score }} / 100</span>
+          </div>
+          <div class="w-full bg-gray-300 dark:bg-gray-600 rounded-full h-2.5">
+            <div [class]="'h-2.5 rounded-full transition-all duration-500 ' + toneColorClass()" [style.width.%]="result.tone.score"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-3">Actions</h3>
+        <div class="grid grid-cols-2 gap-3 relative">
+          <button (click)="transformContent('shorten')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+             <i class="fas fa-compress-alt mr-2"></i> Shorten
+          </button>
+          <button (click)="transformContent('formalize')" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+             <i class="fas fa-user-tie mr-2"></i> Formalize
+          </button>
+          <div class="col-span-2 relative">
+             <button (click)="showMoreActions.set(!showMoreActions())" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                More Actions <i class="fas fa-ellipsis-v ml-2"></i>
+             </button>
+             @if(showMoreActions()) {
+                <div class="absolute bottom-full mb-2 w-full bg-white dark:bg-gray-700 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 z-10">
+                    <ul class="text-sm text-gray-700 dark:text-gray-200">
+                        @for(action of moreActions; track action) {
+                            <li>
+                                <a (click)="transformContent(action)" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">{{action}}</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+             }
+          </div>
+        </div>
+      </div>
+      
+      <!-- Suggestions -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-3">Suggestions</h3>
+        <div class="space-y-3">
+          @for (suggestion of result.suggestions; track suggestion) {
+            <div (click)="applySuggestion(suggestion)" class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 border border-transparent hover:border-blue-500 transition duration-200">
+              <p class="text-gray-700 dark:text-gray-300">{{ suggestion }}</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Grammar -->
+      <div>
+        <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-3">Grammar Check</h3>
+        @if (result.grammarMistakes.length > 0) {
+          <div class="space-y-3">
+            @for (item of result.grammarMistakes; track item) {
+              <div 
+                class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 border border-transparent hover:border-green-500 transition-all duration-200"
+                (click)="applyGrammarCorrection(item.mistake, item.correction)"
+                title="Click to apply correction">
+                <p class="text-red-500 dark:text-red-400 line-through">{{ item.mistake }}</p>
+                <p class="text-green-600 dark:text-green-400 font-semibold">{{ item.correction }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ item.explanation }}</p>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-center">
+            <p class="text-green-600 dark:text-green-400">No grammar mistakes found. Well done!</p>
+          </div>
+        }
+      </div>
+    } @else if (!isLoading()) {
+       <div class="flex-grow flex items-center justify-center">
+         <div class="text-center text-gray-400 dark:text-gray-500">
+            <i class="fas fa-pen-fancy fa-3x mb-4"></i>
+            <p>Start typing in the editor to get AI-powered feedback.</p>
+         </div>
+       </div>
+    }
+  </aside>
+</main>
