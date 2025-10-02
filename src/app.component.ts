@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, effect, inject, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, effect, inject, computed, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { GeminiService } from './services/gemini.service';
@@ -11,7 +11,7 @@ import { AnalysisResult } from './models/analysis.model';
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent {
+export class AppComponent implements AfterViewInit {
   private geminiService = inject(GeminiService);
   private sanitizer = inject(DomSanitizer);
   
@@ -24,7 +24,6 @@ export class AppComponent {
   showMoreActions = signal(false);
   editorWidthPercent = signal(66);
 
-  sanitizedContent = computed(() => this.sanitizer.bypassSecurityTrustHtml(this.editorContent()));
   fontFamilies = ['Arial', 'Verdana', 'Times New Roman', 'Courier New', 'Georgia', 'Comic Sans MS'];
   moreActions = ['Make Funny', 'Make Sarcastic', 'Make Encouraging', 'Make Frustrated', 'Simplify'];
 
@@ -33,6 +32,8 @@ export class AppComponent {
   // Bound methods for event listeners to maintain 'this' context
   private boundDoResize = this.doResize.bind(this);
   private boundStopResize = this.stopResize.bind(this);
+
+  @ViewChild('editor') editor!: ElementRef<HTMLDivElement>;
 
   constructor() {
     this.initializeTheme();
@@ -51,36 +52,46 @@ export class AppComponent {
       }
     }, { allowSignalWrites: true });
 
-    // Effect for theme switching and persistence
-    effect(() => {
-      const currentTheme = this.theme();
-      if (currentTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-      localStorage.setItem('zen-writer-theme', currentTheme);
-    });
-
     // Initial analysis on load
     this.runAnalysis(this.stripHtml(this.editorContent()));
+  }
+
+  ngAfterViewInit(): void {
+    // Set initial content without using a binding to avoid feedback loops.
+    this.editor.nativeElement.innerHTML = this.editorContent();
+  }
+  
+  private applyTheme(theme: 'light' | 'dark'): void {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('zen-writer-theme', theme);
   }
 
   private initializeTheme(): void {
     const savedTheme = localStorage.getItem('zen-writer-theme') as 'light' | 'dark' | null;
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     
+    let initialTheme: 'light' | 'dark' = 'light';
+
     if (savedTheme) {
-        this.theme.set(savedTheme);
+        initialTheme = savedTheme;
     } else if (prefersDark) {
-        this.theme.set('dark');
-    } else {
-        this.theme.set('light'); // Default to light theme
+        initialTheme = 'dark';
     }
+    
+    this.theme.set(initialTheme);
+    this.applyTheme(initialTheme);
   }
 
   toggleTheme(): void {
-    this.theme.update(current => current === 'light' ? 'dark' : 'light');
+    this.theme.update(current => {
+        const newTheme = current === 'light' ? 'dark' : 'light';
+        this.applyTheme(newTheme);
+        return newTheme;
+    });
   }
 
   private stripHtml(html: string): string {
@@ -90,13 +101,19 @@ export class AppComponent {
 
   onContentChange(event: Event): void {
     const target = event.target as HTMLDivElement;
+    // Update the signal with the latest content from the editor.
+    // No [innerHTML] binding exists, so this won't cause a re-render loop.
     this.editorContent.set(target.innerHTML);
   }
 
   format(command: string, value?: string): void {
     document.execCommand(command, false, value);
-    const editor = document.querySelector('[contenteditable="true"]') as HTMLElement;
-    if (editor) editor.focus();
+    const editorEl = document.querySelector('[contenteditable="true"]') as HTMLElement;
+    if (editorEl) {
+      editorEl.focus();
+      // Sync signal after formatting command
+      this.editorContent.set(editorEl.innerHTML);
+    }
   }
 
   startResize(event: MouseEvent): void {
@@ -149,8 +166,11 @@ export class AppComponent {
         const newText = await this.geminiService.transformText(textToTransform, action);
         if (hasSelection) {
             document.execCommand('insertText', false, newText);
+            this.editorContent.set(this.editor.nativeElement.innerHTML);
         } else {
-            this.editorContent.set(`<div>${newText.replace(/\n/g, '<br>')}</div>`);
+            const newHtml = `<div>${newText.replace(/\n/g, '<br>')}</div>`;
+            this.editorContent.set(newHtml);
+            this.editor.nativeElement.innerHTML = newHtml;
         }
     } catch (e) {
         console.error(e);
@@ -161,14 +181,15 @@ export class AppComponent {
   }
 
   applySuggestion(suggestion: string): void {
-    this.editorContent.set(`<div>${suggestion.replace(/\n/g, '<br>')}</div>`);
+    const newHtml = `<div>${suggestion.replace(/\n/g, '<br>')}</div>`;
+    this.editorContent.set(newHtml);
+    this.editor.nativeElement.innerHTML = newHtml;
   }
 
   applyGrammarCorrection(mistake: string, correction: string): void {
-    this.editorContent.update(currentContent => {
-        // Replace only the first occurrence to avoid unintended changes
-        return currentContent.replace(mistake, correction);
-    });
+    const newContent = this.editorContent().replace(mistake, correction);
+    this.editorContent.set(newContent);
+    this.editor.nativeElement.innerHTML = newContent;
   }
 
   toneColorClass = computed(() => {

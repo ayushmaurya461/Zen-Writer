@@ -31,7 +31,7 @@
     <!-- Editor Container -->
     <div class="flex flex-col flex-grow">
       <!-- Toolbar -->
-      <div class="flex items-center flex-wrap gap-x-3 gap-y-2 bg-gray-100 dark:bg-gray-800 p-2 rounded-t-lg border-2 border-b-0 border-gray-200 dark:border-gray-700">
+      <div class="flex items-center flex-wrap gap-x-3 gap-y-2 bg-white dark:bg-gray-800 p-2 rounded-t-lg border-2 border-b-0 border-gray-200 dark:border-gray-700">
         <select (change)="format('formatBlock', $any($event.target).value)" class="bg-gray-200 dark:bg-gray-700 text-black dark:text-white rounded px-2 py-1 focus:outline-none text-xs">
           <option value="p" selected>Paragraph</option>
           <option value="h1">Heading 1</option>
@@ -79,10 +79,10 @@
 
       <!-- Editor -->
       <div 
+        #editor
         contenteditable="true"
-        class="w-full flex-grow bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-b-lg p-4 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base leading-relaxed resize-none"
+        class="w-full flex-grow bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-b-lg p-4 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base leading-relaxed resize-none"
         style="min-height: 300px;"
-        [innerHTML]="sanitizedContent()"
         (input)="onContentChange($event)">
       </div>
     </div>
@@ -95,7 +95,7 @@
   </div>
 
   <!-- Right Panel: AI Assistant -->
-  <aside class="flex-grow bg-gray-50 dark:bg-gray-800 flex flex-col p-4 md:p-6 overflow-y-auto">
+  <aside class="flex-grow bg-white dark:bg-gray-800 flex flex-col p-4 md:p-6 overflow-y-auto">
     <h2 class="text-xl font-bold text-black dark:text-white mb-6">Assistant</h2>
 
     @if (error()) {
@@ -119,7 +119,7 @@
       <!-- Tone Meter -->
       <div class="mb-6">
         <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-3">Tone Analysis</h3>
-        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+        <div class="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
           <div class="flex justify-between items-center mb-2">
             <span class="font-bold text-black dark:text-white capitalize">{{ result.tone.name }}</span>
             <span class="text-sm text-gray-500 dark:text-gray-400">{{ result.tone.score }} / 100</span>
@@ -164,7 +164,7 @@
         <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-3">Suggestions</h3>
         <div class="space-y-3">
           @for (suggestion of result.suggestions; track suggestion) {
-            <div (click)="applySuggestion(suggestion)" class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 border border-transparent hover:border-blue-500 transition duration-200">
+            <div (click)="applySuggestion(suggestion)" class="bg-white dark:bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 hover:border-blue-500 transition duration-200">
               <p class="text-gray-700 dark:text-gray-300">{{ suggestion }}</p>
             </div>
           }
@@ -178,7 +178,7 @@
           <div class="space-y-3">
             @for (item of result.grammarMistakes; track item) {
               <div 
-                class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 border border-transparent hover:border-green-500 transition-all duration-200"
+                class="bg-white dark:bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 hover:border-green-500 transition-all duration-200"
                 (click)="applyGrammarCorrection(item.mistake, item.correction)"
                 title="Click to apply correction">
                 <p class="text-red-500 dark:text-red-400 line-through">{{ item.mistake }}</p>
@@ -188,7 +188,7 @@
             }
           </div>
         } @else {
-          <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-center">
+          <div class="bg-white dark:bg-gray-700 p-3 rounded-lg text-center border border-gray-200 dark:border-gray-600">
             <p class="text-green-600 dark:text-green-400">No grammar mistakes found. Well done!</p>
           </div>
         }
